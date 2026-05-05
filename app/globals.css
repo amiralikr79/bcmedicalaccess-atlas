@@ -1,122 +1,225 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+/* ─────────────────────────────────────────────────────────────
+   Tokens — light is a future phase; we ship dark.
+   :root holds base (eventually light); [data-theme="dark"] overrides.
+   ───────────────────────────────────────────────────────────── */
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* light base placeholder — not used yet, here to keep the contract */
+  --bg: #faf6f0;
+  --surface: #f3ece1;
+  --surface-2: #ece2d2;
+  --surface-3: #e4d8c4;
+  --ink: #1a1410;
+  --ink-muted: #5b4f44;
+  --ink-faint: #8d7e70;
+  --border: #d9cdb9;
+  --border-strong: #b8a78f;
+
+  --brass: #8c7541;
+  --brass-bright: #a48a4f;
+  --brass-dim: #6b5731;
+
+  --ring: #8c7541;
+  --danger: #a13c2a;
+  --success: #4f6f43;
+
+  --shadow-soft: 0 1px 2px rgba(20, 14, 8, 0.08), 0 8px 24px rgba(20, 14, 8, 0.06);
+  --shadow-lift: 0 1px 2px rgba(20, 14, 8, 0.1), 0 16px 40px rgba(20, 14, 8, 0.1);
+
+  /* segment palette — same hues across themes */
+  --seg-primary_care: #c9a961;
+  --seg-diagnostic: #c57a4f;
+  --seg-specialist: #b5553c;
+  --seg-dental: #b89669;
+  --seg-vision: #5d7a99;
+  --seg-mental_health: #7a9070;
+  --seg-allied_health: #6e8553;
+  --seg-naturopathic: #4d7a4f;
+  --seg-aesthetic: #b07380;
+  --seg-reproductive_health: #c47765;
+  --seg-pediatric: #c08e69;
+  --seg-travel_health: #a08542;
+  --seg-cannabis_pain: #75754a;
+  --seg-telehealth: #757aa8;
+  --seg-private_surgical: #784250;
+  --seg-pharmacy_clinical: #8e6957;
+
+  /* radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+[data-theme="dark"] {
+  --bg: #15110d;
+  --surface: #1e1814;
+  --surface-2: #261e18;
+  --surface-3: #2f251e;
+  --ink: #f2e9dc;
+  --ink-muted: #b8a899;
+  --ink-faint: #6b5d52;
+  --border: #2f2620;
+  --border-strong: #473a30;
+
+  --brass: #c9a961;
+  --brass-bright: #e0be76;
+  --brass-dim: #8c7541;
+
+  --ring: #c9a961;
+  --danger: #c2553d;
+  --success: #7a9e68;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-lift: 0 1px 2px rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.45);
+
+  /* segment palette tuned brighter on dark */
+  --seg-primary_care: #c9a961;
+  --seg-diagnostic: #c57a4f;
+  --seg-specialist: #b5553c;
+  --seg-dental: #e8dcc4;
+  --seg-vision: #7b96b5;
+  --seg-mental_health: #a6b89a;
+  --seg-allied_health: #859e68;
+  --seg-naturopathic: #5c8a5e;
+  --seg-aesthetic: #c68a95;
+  --seg-reproductive_health: #d88876;
+  --seg-pediatric: #d4a37a;
+  --seg-travel_health: #b89a52;
+  --seg-cannabis_pain: #8b8b5a;
+  --seg-telehealth: #8e91c2;
+  --seg-private_surgical: #8e4f5c;
+  --seg-pharmacy_clinical: #a87f6b;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Tailwind v4 theme bridge — exposes tokens as utilities.
+   ───────────────────────────────────────────────────────────── */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
   --color-border: var(--border);
-  --color-input: var(--input);
+  --color-border-strong: var(--border-strong);
+
+  --color-brass: var(--brass);
+  --color-brass-bright: var(--brass-bright);
+  --color-brass-dim: var(--brass-dim);
+
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Base
+   ───────────────────────────────────────────────────────────── */
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
   }
+
+  *:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  html {
+    background: var(--bg);
+    color: var(--ink);
+  }
+
   body {
-    @apply bg-background text-foreground;
+    background: var(--bg);
+    color: var(--ink);
+    font-feature-settings:
+      "ss01" 1,
+      "cv11" 1;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--brass) 35%, transparent);
+    color: var(--ink);
+  }
+
+  /* Display type — Fraunces */
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-variation-settings:
+      "SOFT" 50,
+      "opsz" 144;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Grain overlay — SVG turbulence, fixed, pointer-events none.
+   Sparingly applied via .grain helper or globally on body::before.
+   ───────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  .grain::before,
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95  0 0 0 0 0.91  0 0 0 0 0.86  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-size: 200px 200px;
+  }
+
+  /* warm radial wash, used on hero */
+  .glow-warm {
+    background:
+      radial-gradient(
+        ellipse 80% 60% at 30% 20%,
+        color-mix(in oklab, var(--brass) 14%, transparent) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 80% 80%,
+        color-mix(in oklab, #b5553c 10%, transparent) 0%,
+        transparent 60%
+      );
+  }
+
+  /* hairline rule used in editorial layouts */
+  .hairline {
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--border-strong) 20%,
+      var(--border-strong) 80%,
+      transparent
+    );
+    height: 1px;
   }
 }
