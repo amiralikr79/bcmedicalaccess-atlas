@@ -3,7 +3,7 @@ import "server-only";
 import { Pool } from "pg";
 import { createClient as createSupabase, type SupabaseClient } from "@supabase/supabase-js";
 
-import type { Database, SegmentKey } from "./supabase/types";
+import type { ClinicHours, Database, SegmentKey } from "./supabase/types";
 
 /**
  * Server-only data access.
@@ -24,7 +24,14 @@ export type ClinicMarker = {
   slug: string;
   segment: SegmentKey;
   subsegment: string | null;
+  address_line: string | null;
   city: string | null;
+  postal_code: string | null;
+  phone: string | null;
+  website: string | null;
+  hours_summary: string | null;
+  hours_json: ClinicHours | null;
+  accepting_new: boolean | null;
   lat: number;
   lng: number;
 };
@@ -79,7 +86,10 @@ export async function getClinicsInBbox(bbox: Bbox, segment?: SegmentKey): Promis
   }
 
   const { rows } = await getPool().query<ClinicMarker>(
-    `select id, name, slug, segment, subsegment, city, lat, lng
+    `select id, name, slug, segment, subsegment,
+            address_line, city, postal_code, phone, website,
+            hours_summary, hours_json, accepting_new,
+            lat, lng
        from public.clinics_in_bbox($1, $2, $3, $4, $5)`,
     [bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, segment ?? null],
   );

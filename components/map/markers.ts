@@ -46,19 +46,30 @@ export function createClinicPill(c: ClinicMarker, zoom: number): ClinicMarkerEl 
 
   applyClinicLabel(el, zoom);
 
-  // hover state — scale + brass glow
-  el.addEventListener("mouseenter", () => {
+  // cursor hover state — scale + brass glow
+  el.addEventListener("mouseenter", () => setMarkerHover(el, true));
+  el.addEventListener("mouseleave", () => setMarkerHover(el, false));
+
+  return el;
+}
+
+/** Toggle hover styling externally (e.g. when a list card is hovered). */
+export function setMarkerHover(el: ClinicMarkerEl, on: boolean): void {
+  if (on) {
     el.style.transform = "scale(1.08)";
     el.style.boxShadow = PILL_HOVER_SHADOW;
     el.style.zIndex = "20";
-  });
-  el.addEventListener("mouseleave", () => {
+    // restart the ripple keyframe
+    el.classList.remove("atlas-marker--ripple");
+    // reflow trick to replay the animation
+    void el.offsetWidth;
+    el.classList.add("atlas-marker--ripple");
+  } else {
     el.style.transform = "";
     el.style.boxShadow = PILL_BASE_SHADOW;
     el.style.zIndex = "";
-  });
-
-  return el;
+    el.classList.remove("atlas-marker--ripple");
+  }
 }
 
 /** Re-render the inner content for the current zoom (label visible at z>=13). */

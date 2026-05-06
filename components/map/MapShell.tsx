@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import maplibregl, { Map as MapLibreMap, Marker } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 import Supercluster from "supercluster";
@@ -13,6 +13,7 @@ import {
   applyClinicLabel,
   createClinicPill,
   createClusterPill,
+  setMarkerHover,
   type ClinicMarkerEl,
 } from "./markers";
 import type { ClinicMarker } from "@/lib/db";
@@ -35,23 +36,68 @@ function registerPmtilesProtocol(): void {
   pmtilesRegistered = true;
 }
 
+export type Bbox = {
+  minLng: number;
+  minLat: number;
+  maxLng: number;
+  maxLat: number;
+};
+
+export interface MapShellHandle {
+  flyTo: (target: { lat: number; lng: number; zoom?: number }) => void;
+}
+
 export interface MapShellProps {
-  /** Notified whenever the in-viewport clinic list changes (after fetch). */
-  onClinicsInView?: (clinics: ClinicMarker[]) => void;
+  /** Source-of-truth list of clinics to render. (Filtered upstream.) */
+  clinics: readonly ClinicMarker[];
+  /** Slug to highlight via marker hover styling (from list-card hover). */
+  hoveredSlug?: string | null;
+  /** Bounds change is debounced 300ms after `moveend`. */
+  onBoundsChange?: (bbox: Bbox) => void;
+  /** Center change fires synchronously on every move (cheap, used for distance). */
+  onCenterChange?: (center: { lat: number; lng: number }) => void;
   className?: string;
 }
 
 const VANCOUVER_CENTER: [number, number] = [-123.1, 49.25];
 const DEFAULT_ZOOM = 10.5;
 
-export function MapShell({ onClinicsInView, className }: MapShellProps) {
+export const MapShell = forwardRef<MapShellHandle, MapShellProps>(function MapShell(
+  { clinics, hoveredSlug, onBoundsChange, onCenterChange, className },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const clusterRef = useRef<Supercluster<ClinicProps, ClusterProps> | null>(null);
   const markersRef = useRef<globalThis.Map<string, Marker>>(new globalThis.Map());
   const fetchTimerRef = useRef<number | null>(null);
-  const onClinicsCb = useRef(onClinicsInView);
-  onClinicsCb.current = onClinicsInView;
+  const onBoundsRef = useRef(onBoundsChange);
+  const onCenterRef = useRef(onCenterChange);
+  onBoundsRef.current = onBoundsChange;
+  onCenterRef.current = onCenterChange;
+
+  // Index slug → DOM element for fast hover toggling.
+  const slugToEl = useRef<globalThis.Map<string, ClinicMarkerEl>>(new globalThis.Map());
+
+  // Stable supercluster index keyed on the clinics array
+  const clusterIndex = useMemo(() => {
+    const cluster = new Supercluster<ClinicProps, ClusterProps>({
+      radius: 60,
+      maxZoom: 13,
+      extent: 512,
+      minPoints: 2,
+    });
+    cluster.load(
+      clinics.map(
+        (c): IndexFeature => ({
+          type: "Feature",
+          properties: { ...c, cluster: false },
+          geometry: { type: "Point", coordinates: [c.lng, c.lat] },
+        }),
+      ),
+    );
+    return cluster;
+  }, [clinics]);
 
   const renderMarkers = useCallback(() => {
     const map = mapRef.current;
@@ -91,6 +137,8 @@ export function MapShell({ onClinicsInView, className }: MapShellProps) {
             );
             map.flyTo({ center: [lng, lat], zoom: Math.min(targetZoom, 16), speed: 1.2 });
           });
+        } else {
+          slugToEl.current.set((f.properties as ClinicProps).slug, el as ClinicMarkerEl);
         }
 
         m = new maplibregl.Marker({ element: el, anchor: "center" })
@@ -105,52 +153,55 @@ export function MapShell({ onClinicsInView, className }: MapShellProps) {
     // remove stale
     for (const [id, m] of markersRef.current.entries()) {
       if (!wanted.has(id)) {
+        const el = m.getElement() as ClinicMarkerEl;
+        if (el.__c?.slug) slugToEl.current.delete(el.__c.slug);
         m.remove();
         markersRef.current.delete(id);
       }
     }
   }, []);
 
-  const fetchClinics = useCallback(async () => {
-    const map = mapRef.current;
-    if (!map) return;
-    const b = map.getBounds();
-    const bounds = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(",");
+  // Sync the supercluster ref + re-render whenever the clinics prop changes.
+  useEffect(() => {
+    clusterRef.current = clusterIndex;
+    renderMarkers();
+  }, [clusterIndex, renderMarkers]);
 
-    try {
-      const res = await fetch(`/api/clinics?bounds=${bounds}`, {
-        cache: "no-store",
-      });
-      if (!res.ok) {
-        console.warn("[atlas] /api/clinics", res.status);
-        return;
+  // Hover sync — DOM mutation for the highlighted slug.
+  useEffect(() => {
+    const map = slugToEl.current;
+    let active: ClinicMarkerEl | null = null;
+    if (hoveredSlug) {
+      const el = map.get(hoveredSlug);
+      if (el) {
+        setMarkerHover(el, true);
+        active = el;
       }
-      const data = (await res.json()) as { clinics: ClinicMarker[] };
-      const clinics = Array.isArray(data?.clinics) ? data.clinics : [];
-
-      const cluster = new Supercluster<ClinicProps, ClusterProps>({
-        radius: 60,
-        maxZoom: 13,
-        extent: 512,
-        minPoints: 2,
-      });
-      cluster.load(
-        clinics.map(
-          (c): IndexFeature => ({
-            type: "Feature",
-            properties: { ...c, cluster: false },
-            geometry: { type: "Point", coordinates: [c.lng, c.lat] },
-          }),
-        ),
-      );
-      clusterRef.current = cluster;
-      renderMarkers();
-      onClinicsCb.current?.(clinics);
-    } catch (err) {
-      console.warn("[atlas] fetch failed", err);
     }
-  }, [renderMarkers]);
+    return () => {
+      if (active) setMarkerHover(active, false);
+    };
+  }, [hoveredSlug]);
 
+  // Imperative flyTo handle.
+  useImperativeHandle(
+    ref,
+    () => ({
+      flyTo({ lat, lng, zoom }) {
+        const map = mapRef.current;
+        if (!map) return;
+        map.easeTo({
+          center: [lng, lat],
+          zoom: zoom ?? Math.max(map.getZoom(), 14),
+          duration: 800,
+          easing: (t: number) => 1 - Math.pow(1 - t, 3),
+        });
+      },
+    }),
+    [],
+  );
+
+  // Initial map setup
   useEffect(() => {
     if (!containerRef.current) return;
     registerPmtilesProtocol();
@@ -165,11 +216,8 @@ export function MapShell({ onClinicsInView, className }: MapShellProps) {
       pitch: 0,
       bearing: 0,
       attributionControl: { compact: true },
-      // Trackpad rotation is annoying on most laptops — disable by default.
       dragRotate: false,
       pitchWithRotate: false,
-      // Allow pitch only with cmd/ctrl held. We re-enable dragRotate
-      // (which carries pitch) on modifier-keydown and disable on keyup.
       touchPitch: false,
     });
 
@@ -199,30 +247,57 @@ export function MapShell({ onClinicsInView, className }: MapShellProps) {
       "bottom-right",
     );
 
-    map.on("load", () => {
-      mapRef.current = map;
-      void fetchClinics();
-    });
+    const publishCenter = () => {
+      const c = map.getCenter();
+      onCenterRef.current?.({ lat: c.lat, lng: c.lng });
+    };
 
-    map.on("moveend", () => {
-      renderMarkers();
+    const publishBoundsDebounced = () => {
       if (fetchTimerRef.current != null) window.clearTimeout(fetchTimerRef.current);
       fetchTimerRef.current = window.setTimeout(() => {
-        void fetchClinics();
+        const b = map.getBounds();
+        onBoundsRef.current?.({
+          minLng: b.getWest(),
+          minLat: b.getSouth(),
+          maxLng: b.getEast(),
+          maxLat: b.getNorth(),
+        });
       }, 300);
+    };
+
+    map.on("load", () => {
+      mapRef.current = map;
+      publishCenter();
+      // emit bounds immediately on load so the parent can fetch
+      const b = map.getBounds();
+      onBoundsRef.current?.({
+        minLng: b.getWest(),
+        minLat: b.getSouth(),
+        maxLng: b.getEast(),
+        maxLat: b.getNorth(),
+      });
+      renderMarkers();
+    });
+
+    map.on("move", publishCenter);
+    map.on("moveend", () => {
+      renderMarkers();
+      publishBoundsDebounced();
     });
 
     const markers = markersRef.current;
+    const slugMap = slugToEl.current;
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       if (fetchTimerRef.current != null) window.clearTimeout(fetchTimerRef.current);
       for (const m of markers.values()) m.remove();
       markers.clear();
+      slugMap.clear();
       map.remove();
       mapRef.current = null;
     };
-  }, [fetchClinics, renderMarkers]);
+  }, [renderMarkers]);
 
   return <div ref={containerRef} className={className} />;
-}
+});
